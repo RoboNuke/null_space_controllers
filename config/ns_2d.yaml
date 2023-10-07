@@ -1,0 +1,15 @@
+
+
+
+# The joint state controller handles publishing transforms for any moving joints
+
+DoF5_2D:
+  joint_state_controller:
+    type: "joint_state_controller/JointStateController"
+    publish_rate: 50
+
+
+  joint1_effort_controller:
+    type: position_controllers/JointPostionController
+    joint: base_to_0_joint
+    pid: {p: 0.75, i: 0.5, d: 0.01}

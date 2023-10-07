@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="5DoF_2D">
+
+<xacro:property name="length" value="1.0" />
+<xacro:property name="radius" value="0.1" />
+<xacro:property name="mass" value="10" />
+
+<xacro:macro name="default_shape">
+		<geometry>
+		  <!--box size="${radius} ${length} ${radius}"/-->
+		  <cylinder length="${length}" radius="${radius}"/>
+		</geometry>
+</xacro:macro>
+
+<xacro:macro name="default_inertia">
+	     <inertial>
+		<mass value="${mass}" />
+                <inertia ixx="${mass*length*length/3.0}" ixy="0.0" ixz="0.0"
+                     iyy="0.0" iyz="0.0"
+                     izz="${mass*length*length/3.0}" />
+       	     </inertial>
+</xacro:macro>
+
+<material name="3">
+	  <color rgba="0 0 0.8 1"/>
+</material>
+<material name="1">
+	  <color rgba="0 0.8 0 1"/>
+</material>
+<material name="2">
+	  <color rgba="0.8 0 0 1"/>
+</material>
+<material name="0">
+	  <color rgba="0 0 0 1"/>
+</material>
+
+<material name="4">
+    	<color rgba="1 1 1 1"/>
+</material>
+
+<xacro:macro name="default_link" params="n material">
+       <link name = "link_${n}">
+         <visual>
+		<origin rpy="0 1.57 0" xyz="${length/2.0} 0 ${radius*2.0*n+radius/10.0}" />
+		<xacro:default_shape />
+		<material name="${material}"/>
+	  </visual>
+	  <collision>
+		<xacro:default_shape />
+	  </collision>
+	  <xacro:default_inertia/>
+	</link>
+</xacro:macro>
+
+
+<!--link name="world">
+</link-->
+
+<link name="base_link">
+         <visual>
+		<origin rpy="0 0 0" xyz="0 0 ${-length/2.0-radius-0.01}" />
+		<xacro:default_shape />
+		<material name="0"/>
+	  </visual>
+	  <collision>
+		<xacro:default_shape />
+	  </collision>
+	  <xacro:default_inertia/>
+</link>
+
+<!--joint name="world_to_base" type="fixed">
+  <parent link = "world"/>
+  <child link = "base_link"/>
+</joint-->
+	  
+
+<xacro:macro name="loop" params="steps">
+	     <xacro:default_link n="${steps}" material="${steps}"/>
+	     <xacro:if value="${steps-1 >  -1}">
+	     	       <xacro:loop steps="${steps-1}"/>
+	     </xacro:if>
+</xacro:macro>
+
+<xacro:loop steps="0"/>
+
+<joint name="base_to_0_joint" type="continuous">
+       <axis xyz="0 0 1"/>
+       <limit effort="30.0" velocity="0.5"/>
+       <dynamics damping="0.0" friction="0.0"/>
+       <origin rpy="0 0 0" xyz="0 0 0"/>
+       <parent link="base_link"/>
+       <child link="link_0"/>
+</joint>
+
+<xacro:macro name="loop2" params="step maxsteps">
+	     <joint name="${step}_to_${step+1}_joint" type="continuous">
+       	     	    <axis xyz="0 0 1"/>
+       		    <limit effort="30.0" velocity="0.5"/>
+       		    <origin rpy="0 0 0" xyz="${length} 0 0"/>
+       		    <parent link="link_${step}"/>
+       		    <child link="link_${step+1}"/>
+		    <dynamics damping="0.1" friction="0.1"/>
+	     </joint>
+	     <xacro:if value="${maxsteps > step+1}">
+	     	       <xacro:loop2 step="${step+1}" maxsteps="${maxsteps}"/>
+             </xacro:if>
+</xacro:macro>
+
+<!--xacro:loop2 step="0" maxsteps="4"/-->
+
+  <transmission name="base_to_0_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <actuator name="base_to_0_motor">
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+    <joint name="base_to_0_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+  </transmission>
+
+<xacro:macro name="loop3" params="step maxsteps">
+  <transmission name="${step}_to_${step+1}_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <actuator name="${step}_to_${step+1}_motor">
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+    <joint name="${step}_to_${step+1}_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+  </transmission>
+	     <xacro:if value="${maxsteps > step+1}">
+	     	       <xacro:loop3 step="${step+1}" maxsteps="${maxsteps}"/>
+	     </xacro:if>
+</xacro:macro>
+
+<!--xacro:loop3 step="0" maxsteps="4"/-->
+
+
+<gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/DoF5_2D</robotNamespace>
+    </plugin>
+</gazebo>
+
+
+</robot>
